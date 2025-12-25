@@ -53,6 +53,17 @@ func (h *Handler) Register() gin.HandlerFunc {
 	}
 }
 
+// Login
+// @Summary Регистрация
+// @Tags auths
+// @Accept	json
+// @Produce	json
+// @Param input body models.RegisterRequest true "Модель которую принимает метод (Param)"
+// @Success 200 {string}  string "Login successful"
+// @Failure 400 {string} string "Invalid request"
+// @Failure 401 {string} string "Invalid username or password"
+// @Failure 500 {string} string "Could not generate token"
+// @Router /login [post]
 func (h *Handler) Login() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		var req models.LoginRequest
