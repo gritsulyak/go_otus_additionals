@@ -1,0 +1,46 @@
+definitions:
+  models.RegisterRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+host: localhost:8080/
+info:
+  contact: {}
+  description: API Server
+  title: Базовый сервис авторизации
+  version: "1"
+paths:
+  /register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Можель которую принимает метод
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Registration successful
+          schema:
+            type: string
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+      summary: Регистрация
+      tags:
+      - auths
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

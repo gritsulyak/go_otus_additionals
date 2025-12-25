@@ -1,0 +1,41 @@
+### POST register
+POST http://localhost:8080/register
+Content-Type: application/json
+
+{
+"password": "password3",
+"username": "user3"
+}
+
+### POST login
+POST http://localhost:8080/login
+Content-Type: application/json
+
+{
+  "password": "password2",
+  "username": "user2"
+}
+
+### GET protected
+GET http://localhost:8080/protected
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InVzZXIyIiwiZXhwIjoxNzQ4MzcyMTA4LCJpc3MiOiJnby1naW4tand0LWV4YW1wbGUifQ.siq8pYasaX4S6RPONfj4XRmL_B7j5hr8nyJJT2Rx2Ps
+
+### POST login2
+POST http://localhost:8080/login
+Content-Type: application/json
+
+{
+  "password": "password3",
+  "username": "user3"
+}
+
+> {%
+    client.global.set("access_token", response.body.token);
+    client.global.set("refresh_token", response.body.refresh_token);
+%}
+
+### GET protected2
+GET http://localhost:8080/protected
+Authorization: Bearer {{access_token}}
+
+###
