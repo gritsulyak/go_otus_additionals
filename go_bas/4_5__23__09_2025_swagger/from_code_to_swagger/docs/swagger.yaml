@@ -18,7 +18,7 @@ paths:
       consumes:
       - application/json
       parameters:
-      - description: Можель которую принимает метод
+      - description: Модель которую принимает метод (Param)
         in: body
         name: input
         required: true

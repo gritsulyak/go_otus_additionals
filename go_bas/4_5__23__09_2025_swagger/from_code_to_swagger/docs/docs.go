@@ -29,7 +29,7 @@ const docTemplate = `{
                 "summary": "Регистрация",
                 "parameters": [
                     {
-                        "description": "Модель которую принимает метод",
+                        "description": "Модель которую принимает метод (Param)",
                         "name": "input",
                         "in": "body",
                         "required": true,

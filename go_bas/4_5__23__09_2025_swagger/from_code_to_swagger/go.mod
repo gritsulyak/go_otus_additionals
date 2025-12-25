@@ -3,7 +3,6 @@ module github.com/gritsulyak/go_otus_additionals/go_bas/4_5__23__09_2025_swagger
 go 1.25.5
 
 require (
-	github.com/SaveliiYam/simple-http-server v0.0.0-20250120190610-f4be60424def
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gin-gonic/gin v1.11.0
 	github.com/swaggo/files v1.0.1

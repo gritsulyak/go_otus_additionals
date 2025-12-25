@@ -22,7 +22,7 @@
                 "summary": "Регистрация",
                 "parameters": [
                     {
-                        "description": "Можель которую принимает метод",
+                        "description": "Модель которую принимает метод (Param)",
                         "name": "input",
                         "in": "body",
                         "required": true,
