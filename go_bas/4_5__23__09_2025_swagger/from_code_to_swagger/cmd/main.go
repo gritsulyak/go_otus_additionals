@@ -1,10 +1,8 @@
 package main
 
 import (
-	_ "github.com/SaveliiYam/simple-http-server/docs"
-	"github.com/SaveliiYam/simple-http-server/internal/handler"
 	"github.com/gin-gonic/gin"
-	_ "github.com/gritsulyak/go_otus_additionals/go_bas/4_5__23__09_2025_swagger/from_code_to_swagger/internal/docs"
+	_ "github.com/gritsulyak/go_otus_additionals/go_bas/4_5__23__09_2025_swagger/from_code_to_swagger/docs"
 	"github.com/gritsulyak/go_otus_additionals/go_bas/4_5__23__09_2025_swagger/from_code_to_swagger/internal/handler"
 	_ "github.com/swaggo/files"
 	swaggerFiles "github.com/swaggo/files"

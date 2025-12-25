@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/SaveliiYam/simple-http-server/internal/middleware"
-	"github.com/SaveliiYam/simple-http-server/internal/models"
-	"github.com/SaveliiYam/simple-http-server/internal/utils/jwtgen"
 	"github.com/gin-gonic/gin"
+	"github.com/gritsulyak/go_otus_additionals/go_bas/4_5__23__09_2025_swagger/from_code_to_swagger/internal/middleware"
+	"github.com/gritsulyak/go_otus_additionals/go_bas/4_5__23__09_2025_swagger/from_code_to_swagger/internal/models"
+	"github.com/gritsulyak/go_otus_additionals/go_bas/4_5__23__09_2025_swagger/from_code_to_swagger/internal/utils/jwtgen"
 )
 
 // Структуры для пользователя
@@ -26,9 +26,9 @@ func New() *Handler {
 // Register
 // @Summary Регистрация
 // @Tags auths
-// @Accept			json
-// @Produce		json
-// @Param input body models.RegisterRequest true "Можель которую принимает метод"
+// @Accept	json
+// @Produce	json
+// @Param input body models.RegisterRequest true "Модель которую принимает метод (Param)"
 // @Success 200 {string}  string "Registration successful"
 // @Failure 400 {string} string "Invalid request"
 // @Router /register [post]

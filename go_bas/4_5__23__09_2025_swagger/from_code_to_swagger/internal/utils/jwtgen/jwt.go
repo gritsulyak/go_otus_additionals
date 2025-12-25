@@ -4,8 +4,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/SaveliiYam/simple-http-server/internal/models"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/gritsulyak/go_otus_additionals/go_bas/4_5__23__09_2025_swagger/from_code_to_swagger/internal/models"
 )
 
 // Структуры для пользователя и токенов
