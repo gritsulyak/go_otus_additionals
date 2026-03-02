@@ -1,0 +1,17 @@
+API -> CODE
+[ПРОЦЕСС ГЕНЕРАЦИИ СЕРВЕРА]
+go install github.com/go-swagger/go-swagger/cmd/swagger@latest
+Шаги:
+Валидация Swagger-файла:
+bash
+swagger validate swagger.json
+Генерация сервера:
+bash
+swagger generate server -f swagger.json
+После генерации появляется разветвлённая структура папок: restapi/,
+restapi/operations/, cmd/. Это уже рабочий сервер.
+поправить порт в коде:
+(see main.go:54)
+
+Swagger тут:
+http://127.0.0.1:8080/docs
