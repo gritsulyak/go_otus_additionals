@@ -46,7 +46,12 @@ func NewAuthServerAPI(spec *loads.Document) *AuthServerAPI {
 
 		AuthsPostLoginHandler: auths.PostLoginHandlerFunc(func(params auths.PostLoginParams) middleware.Responder {
 			_ = params
+			req:= params.Input
 
+			if(req.Username == "good" && req.Password == "password") {
+				token := "faketoken"
+				return auths.NewPostLoginOK().WithPayload(token)
+			}
 			return middleware.NotImplemented("operation auths.PostLogin has not yet been implemented")
 		}),
 

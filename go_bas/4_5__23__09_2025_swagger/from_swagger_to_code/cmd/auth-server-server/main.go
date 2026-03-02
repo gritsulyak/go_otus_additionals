@@ -51,6 +51,10 @@ func main() {
 
 	server.ConfigureAPI() // configure handlers, routes and middleware
 
+	// MANUALLY written:
+	server.Host = "localhost"
+	server.Port = 8080
+
 	if err := server.Serve(); err != nil {
 		_ = server.Shutdown()
 

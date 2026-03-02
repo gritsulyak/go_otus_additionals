@@ -12,8 +12,8 @@ POST http://localhost:8080/login
 Content-Type: application/json
 
 {
-  "password": "password2",
-  "username": "user2"
+  "password": "password3",
+  "username": "user3"
 }
 
 ### GET protected

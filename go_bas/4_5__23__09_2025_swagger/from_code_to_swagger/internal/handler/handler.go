@@ -59,7 +59,7 @@ func (h *Handler) Register() gin.HandlerFunc {
 // @Accept	json
 // @Produce	json
 // @Param input body models.RegisterRequest true "Модель которую принимает метод (Param)"
-// @Success 200 {string}  string "Login successful"
+// @Success 200 {string}  string "Login successful done"
 // @Failure 400 {string} string "Invalid request"
 // @Failure 401 {string} string "Invalid username or password"
 // @Failure 500 {string} string "Could not generate token"
@@ -93,6 +93,12 @@ func (h *Handler) Login() func(c *gin.Context) {
 	}
 }
 
+// Protected
+// @Summary Protected resource
+// @Tags read
+// @Accept	json
+// @Produce	json
+// @Router /protected [get]
 func (h *Handler) Protected() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		username, _ := c.Get("username")
