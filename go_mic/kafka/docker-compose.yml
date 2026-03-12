@@ -3,6 +3,9 @@ version: "3.9"
 networks:
   kafka-net:
     driver: bridge
+    ipam:
+      config:
+        - subnet: "10.99.0.0/24"
 
 volumes:
   kafka0-data:
