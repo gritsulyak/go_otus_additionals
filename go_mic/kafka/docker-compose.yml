@@ -1,0 +1,166 @@
+version: "3.9"
+
+networks:
+  kafka-net:
+    driver: bridge
+
+volumes:
+  kafka0-data:
+  kafka1-data:
+  kafka2-data:
+  postgres-a-data:
+  postgres-b-data:
+
+# ── Анкор ТОЛЬКО на общий блок переменных окружения ──────────────────────────
+x-kafka-env: &kafka-env
+  KAFKA_PROCESS_ROLES: "broker,controller"
+  KAFKA_CONTROLLER_QUORUM_VOTERS: "0@kafka0:29093,1@kafka1:29093,2@kafka2:29093"
+  KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT"
+  KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+  KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+  KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "3"
+  KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "3"
+  KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "2"
+  KAFKA_DEFAULT_REPLICATION_FACTOR: "3"
+  KAFKA_MIN_INSYNC_REPLICAS: "2"
+  KAFKA_LOG_RETENTION_HOURS: "24"
+  KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+  CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+
+services:
+
+  kafka0:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka0
+    hostname: kafka0
+    networks:
+      - kafka-net
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka0-data:/var/lib/kafka/data
+    environment:
+      <<: *kafka-env          # ← вливаем только env-переменные
+      KAFKA_NODE_ID: "0"      # уникальные значения идут ПОСЛЕ и переопределяют
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka0:29092,PLAINTEXT_HOST://localhost:9092"
+      KAFKA_LISTENERS: "PLAINTEXT://kafka0:29092,CONTROLLER://kafka0:29093,PLAINTEXT_HOST://0.0.0.0:9092"
+
+  kafka1:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka1
+    hostname: kafka1
+    networks:
+      - kafka-net
+    ports:
+      - "9093:9092"
+    volumes:
+      - kafka1-data:/var/lib/kafka/data
+    environment:
+      <<: *kafka-env
+      KAFKA_NODE_ID: "1"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka1:29092,PLAINTEXT_HOST://localhost:9093"
+      KAFKA_LISTENERS: "PLAINTEXT://kafka1:29092,CONTROLLER://kafka1:29093,PLAINTEXT_HOST://0.0.0.0:9092"
+
+  kafka2:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka2
+    hostname: kafka2
+    networks:
+      - kafka-net
+    ports:
+      - "9094:9092"
+    volumes:
+      - kafka2-data:/var/lib/kafka/data
+    environment:
+      <<: *kafka-env
+      KAFKA_NODE_ID: "2"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka2:29092,PLAINTEXT_HOST://localhost:9094"
+      KAFKA_LISTENERS: "PLAINTEXT://kafka2:29092,CONTROLLER://kafka2:29093,PLAINTEXT_HOST://0.0.0.0:9092"
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    networks:
+      - kafka-net
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: "local-kraft"
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka0:29092,kafka1:29092,kafka2:29092"
+    depends_on:
+      - kafka0
+      - kafka1
+      - kafka2
+
+  postgres-a:
+    image: postgres:16
+    container_name: postgres-a
+    networks:
+      - kafka-net
+    environment:
+      POSTGRES_DB: payments
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-a-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d payments"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  postgres-b:
+    image: postgres:16
+    container_name: postgres-b
+    networks:
+      - kafka-net
+    environment:
+      POSTGRES_DB: billing
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-b-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d billing"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  payment-service:
+    build: ./payment-service
+    container_name: payment-service
+    networks:
+      - kafka-net
+    environment:
+      DB_DSN: "postgres://user:pass@postgres-a:5432/payments?sslmode=disable"
+      KAFKA_BOOTSTRAP_SERVERS: "kafka0:29092,kafka1:29092,kafka2:29092"
+    depends_on:
+      postgres-a:
+        condition: service_healthy
+      kafka0:
+        condition: service_started
+    ports:
+      - "8081:8080"
+    restart: on-failure
+
+  billing-service:
+    build: ./billing-service
+    container_name: billing-service
+    networks:
+      - kafka-net
+    environment:
+      DB_DSN: "postgres://user:pass@postgres-b:5432/billing?sslmode=disable"
+      KAFKA_BOOTSTRAP_SERVERS: "kafka0:29092,kafka1:29092,kafka2:29092"
+      KAFKA_GROUP_ID: "billing-group"
+    depends_on:
+      postgres-b:
+        condition: service_healthy
+      kafka0:
+        condition: service_started
+    ports:
+      - "8082:8080"
+    restart: on-failure
