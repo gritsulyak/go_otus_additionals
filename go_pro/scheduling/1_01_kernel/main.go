@@ -42,7 +42,7 @@ func main() {
 	start := time.Now()
 	for i := 1; i <= numCoroutines; i++ {
 		wg.Add(1)
-		go kernelSleep(i, &wg, 2*time.Second)
+		go kernelSleep(i, &wg, 1*time.Second)
 	}
 
 	wg.Wait()
