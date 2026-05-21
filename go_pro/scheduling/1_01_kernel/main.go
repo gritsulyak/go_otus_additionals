@@ -13,27 +13,26 @@ func kernelSleep(id int, wg *sync.WaitGroup, duration time.Duration) {
 
 	defer wg.Done()
 
-	// 1. Привязываем горутину к конкретному системному потоку (M).
-	// Это гарантирует, что системный вызов заблокирует весь поток целиком.
+	// lock on thread level
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	fmt.Printf("Горутина %d: засыпаю в ядре на %v...\n", id, duration)
+	fmt.Printf("go %d: sleep in kernel for %v...\n", id, duration)
 
-	// 2. Выполняем прямой системный вызов (Syscall).
-	// Процесс перейдет в состояние TASK_INTERRUPTIBLE на уровне ядра.
+	// TASK_INTERRUPTIBLE in kernel.
 	tv := syscall.NsecToTimespec(duration.Nanoseconds())
 	err := syscall.Nanosleep(&tv, nil)
 
 	if err != nil {
-		fmt.Printf("Ошибка в горутине %d: %v\n", id, err)
+		fmt.Printf("Error in goroutine %d: %v\n", id, err)
 	}
-	fmt.Printf("Горутина %d: проснулась!\n", id)
+	fmt.Printf("Goroutine %d: awake !\n", id)
+
 }
 
 func main() {
 
-	// Устанавливаем количество P (логических процессоров) = 2
+	// P (logical procs) = 2
 	runtime.GOMAXPROCS(2)
 	fmt.Printf("GOMAXPROCS = %d\n", runtime.GOMAXPROCS(0))
 

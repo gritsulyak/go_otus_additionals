@@ -9,19 +9,19 @@ import (
 )
 
 func main() {
-	// Устанавливаем количество P (логических процессоров) = 2
+	// set P (logical processors) = 2
 	runtime.GOMAXPROCS(2)
 	fmt.Printf("GOMAXPROCS = %d\n", runtime.GOMAXPROCS(0))
 
 	var wg sync.WaitGroup
 	start := time.Now()
 
-	// Запускаем 10 горутин
+	// Run 10 goroutines
 	for i := 0; i < 10; i++ {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
-			// Каждая горутина работает 1 секунду
+			// each goroutine 1 
 			fmt.Printf("[%d] started at %v\n", id, time.Since(start))
 			time.Sleep(time.Second)
 			fmt.Printf("[%d] finished at %v\n", id, time.Since(start))
