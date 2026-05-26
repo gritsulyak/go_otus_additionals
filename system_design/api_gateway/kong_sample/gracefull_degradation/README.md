@@ -18,7 +18,9 @@
 
 ```bash
 # Запускаем всё
-docker-compose up -d
+docker compose down
+docker compose up --build
+
 
 # Дождаться готовности Kong (около 10–15 секунд)
 # Можно проверить через curl http://localhost:8001/services

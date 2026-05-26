@@ -1,37 +1,74 @@
+# ============================================
+# Kong DB-less declarative configuration
+# Graceful degradation: rate limit + fallback
+# ============================================
 _format_version: "3.0"
 
 services:
+  # --- Main service (complex version) ---
   - name: main-svc
     url: http://main-app:80
     routes:
       - name: main-route
         paths:
           - /api
-        strip_path: true
+        strip_path: true  # убираем /api перед проксированием на backend
     plugins:
-      - name: rate-limiting
-        config:
-          minute: 5
-          limit_by: ip
-          policy: local
+      # Кастомный rate limiter + fallback через Lua
       - name: pre-function
         config:
           access:
+            # Lua-блок: выполняется на фазе access (перед проксированием)
             - |
-              local original_exit = kong.response.exit
-              kong.response.exit = function(status, body, headers)
-                if status == 429 then
-                  return original_exit(307, nil, {
-                    ["Location"] = { "http://localhost:8000/simple" }
-                  })
-                end
-                return original_exit(status, body, headers)
+              -- ============================================
+              -- Кастомный rate limiter с graceful degradation
+              -- ============================================
+
+              -- Лимит: максимальное количество запросов в окно
+              local limit = 5
+
+              -- Окно: время жизни счетчика в секундах (60 = 1 минута)
+              local window = 10
+
+              -- Получаем IP клиента (учитывает X-Forwarded-For)
+              local ip = kong.client.get_forwarded_ip() or "unknown"
+
+              -- Формируем ключ в shared memory: префикс + IP
+              local cache_key = "rl:" .. ip
+
+              -- Получаем доступ к зоне shared memory nginx (in-memory хранилище)
+              local shm = ngx.shared.kong
+
+              -- Читаем текущее значение счетчика по ключу (nil = первый запрос)
+              local current, err = shm:get(cache_key)
+
+              -- Если ключа еще нет, инициализируем счетчик как 0
+              if current == nil then
+                current = 0
               end
 
+              -- === ПРОВЕРКА ЛИМИТА ===
+              -- Если счетчик достиг лимита — возвращаем 307 редирект на simple
+              if current >= limit then
+                return kong.response.exit(307, nil, {
+                  ["Location"] = { "http://localhost:8000/simple" }
+                })
+              end
+
+              -- === ИНКРЕМЕНТ СЧЕТЧИКА ===
+              -- Увеличиваем счетчик на 1. Если ключ новый — создаем со значением 0 и TTL=window
+              local new_val, err = shm:incr(cache_key, 1, 0, window)
+
+              -- Защита: если incr вернул ошибку — принудительно создаем ключ
+              if not new_val then
+                shm:set(cache_key, 1, window)
+              end
+
+  # --- Fallback service (simple version) ---
   - name: simple-svc
     url: http://simple-app:80
     routes:
       - name: simple-route
         paths:
           - /simple
-        strip_path: true
+        strip_path: true  # убираем /simple перед проксированием
