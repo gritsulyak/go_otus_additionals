@@ -1,19 +1,6 @@
 version: '3.8'
 
 services:
-  # База данных для конфигурации Kong
-  kong-db:
-    image: postgres:13-alpine
-    environment:
-      POSTGRES_USER: kong
-      POSTGRES_DB: kong
-      POSTGRES_PASSWORD: kongpass
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "kong"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   # Основное приложение (сложная версия)
   main-app:
     image: nginx:alpine
@@ -31,42 +18,27 @@ services:
     environment:
       - VERSION=simple
 
-  # Redis для распределённого rate limiting (опционально)
-  redis:
-    image: redis:alpine
-
   # Конфигурация Kong (инициализация + сам шлюз)
-  kong:
-    image: kong:3.8.0
-    depends_on:
-      kong-db:
-        condition: service_healthy
+  postgres:
+    image: postgres:15
     environment:
-      KONG_DATABASE: postgres
-      KONG_PG_HOST: kong-db
-      KONG_PG_USER: kong
-      KONG_PG_PASSWORD: kongpass
-      KONG_PG_DATABASE: kong
-      KONG_PROXY_ACCESS_LOG: /dev/stdout
-      KONG_ADMIN_ACCESS_LOG: /dev/stdout
-      KONG_PROXY_ERROR_LOG: /dev/stderr
-      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      POSTGRES_DB: kong
+      POSTGRES_USER: kong
+      POSTGRES_PASSWORD: kong
+  kong:
+    image: kong:3.7
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /kong/declarative/kong.yml
       KONG_ADMIN_LISTEN: 0.0.0.0:8001
       KONG_PROXY_LISTEN: 0.0.0.0:8000
-      # Включаем декларативную конфигурацию (опционально)
-      KONG_DECLARATIVE_CONFIG: /kong/declarative/kong.yml
     volumes:
-      - ./kong-config:/kong/declarative  # Позже поместим сюда конфиг
+      - ./kong-config/kong.yml:/kong/declarative/kong.yml:ro
     ports:
-      - "8000:8000"   # Прокси порт для клиентов
-      - "8001:8001"   # Admin API
-    healthcheck:
-      test: ["CMD", "kong", "health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - "8000:8000"
+      - "8001:8001"
 
-  # Сервис для генерации нагрузки (для демонстрации)
+      # Сервис для генерации нагрузки (для демонстрации)
   load-tester:
     image: curlimages/curl:latest
     depends_on:

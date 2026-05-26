@@ -7,36 +7,31 @@ services:
       - name: main-route
         paths:
           - /api
-        strip_path: false
+        strip_path: true
     plugins:
-      # Rate limiting: 5 запросов в минуту
       - name: rate-limiting
         config:
           minute: 5
           limit_by: ip
-          policy: local   # для простоты, без Redis. Для продакшена лучше redis
-      # Пользовательская логика: редирект на simple-app при 429
+          policy: local
       - name: pre-function
         config:
-          access: |
-            -- Сохраняем исходный обработчик ответа
-            local original_handle_response = kong.response.exit
-
-            kong.response.exit = function(status, body, headers)
-              if status == 429 then
-                -- Перенаправляем на простую версию
-                return original_handle_response(307, nil, {
-                  Location = { "http://localhost:8000/simple" }
-                })
+          access:
+            - |
+              local original_exit = kong.response.exit
+              kong.response.exit = function(status, body, headers)
+                if status == 429 then
+                  return original_exit(307, nil, {
+                    ["Location"] = { "http://localhost:8000/simple" }
+                  })
+                end
+                return original_exit(status, body, headers)
               end
-              return original_handle_response(status, body, headers)
-            end
 
-  # Отдельный сервис для простой версии
   - name: simple-svc
     url: http://simple-app:80
     routes:
       - name: simple-route
         paths:
           - /simple
-        strip_path: false 
+        strip_path: true
