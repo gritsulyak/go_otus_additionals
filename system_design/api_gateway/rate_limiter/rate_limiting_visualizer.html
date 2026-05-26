@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rate Limiting Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d1117;--surface:#161b22;--surface2:#1c2128;--border:#30363d;
+  --text:#c9d1d9;--muted:#8b949e;--faint:#484f58;
+  --blue:#58a6ff;--green:#3fb950;--red:#f85149;--amber:#d29922;
+  --font-mono:'JetBrains Mono',monospace;--font-ui:'Inter',sans-serif;
+  --radius:6px;--transition:150ms cubic-bezier(0.16,1,0.3,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--font-ui);font-size:13px;background:var(--bg);color:var(--text);display:flex;flex-direction:column}
+#app{display:flex;flex:1;min-height:0}
+#sidebar{width:280px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
+#main{flex:1;min-width:0}
+canvas{display:block;width:100%;height:100%}
+.sb-section{padding:14px 16px;border-bottom:1px solid var(--border)}
+.sb-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px}
+.sb-desc{font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:6px}
+label.field{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
+label.field span{font-size:11px;color:var(--muted);letter-spacing:.3px}
+select,input[type=number]{width:100%;padding:5px 8px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);font-family:var(--font-ui);font-size:13px;appearance:none;outline:none;transition:border-color var(--transition)}
+select:focus,input:focus{border-color:var(--blue)}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b949e' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:28px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 14px;border-radius:var(--radius);font-family:var(--font-ui);font-size:13px;font-weight:500;cursor:pointer;transition:background var(--transition),opacity var(--transition);border:none}
+.btn-primary{background:#238636;color:#fff;border:1px solid #2ea043}.btn-primary:hover{background:#2ea043}
+.btn-stop{background:#b62324;color:#fff;border:1px solid #e5534b}.btn-stop:hover{background:#e5534b}
+.btn-burst{background:transparent;color:var(--amber);border:1px solid var(--amber)}.btn-burst:hover{background:rgba(210,153,34,.12)}.btn-burst:disabled{opacity:.35;cursor:not-allowed}
+.btn-row{display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border)}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:14px 16px;border-bottom:1px solid var(--border)}
+.stat-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px}
+.stat-card .val{font-family:var(--font-mono);font-size:18px;font-weight:600;line-height:1}
+.stat-card .lbl{font-size:10px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.5px}
+.c-blue{color:var(--blue)}.c-green{color:var(--green)}.c-red{color:var(--red)}.c-amber{color:var(--amber)}
+.legend{display:flex;flex-wrap:wrap;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border)}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+#stateView{flex:1;padding:12px 16px;font-family:var(--font-mono);font-size:11.5px;color:var(--muted);line-height:1.7;overflow-y:auto}
+#stateView b{color:var(--text)}
+#stateView .hint{color:var(--amber);font-family:var(--font-ui)}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="sidebar">
+    <div class="sb-section">
+      <div class="sb-title">Алгоритм</div>
+      <label class="field">
+        <select id="algoSelect">
+          <option value="token">Token Bucket</option>
+          <option value="leaky">Leaky Bucket</option>
+          <option value="fixed">Fixed Window</option>
+          <option value="sliding">Sliding Window</option>
+        </select>
+      </label>
+      <div id="algoDesc" class="sb-desc"></div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-title">Параметры алгоритма</div>
+      <div id="p-token">
+        <label class="field"><span>Capacity (токенов)</span><input type="number" id="tbCap" value="10" min="1"></label>
+        <label class="field"><span>Refill Rate (токенов/сек)</span><input type="number" id="tbRate" value="5" min="1"></label>
+      </div>
+      <div id="p-leaky" class="hidden">
+        <label class="field"><span>Capacity (запросов)</span><input type="number" id="lbCap" value="10" min="1"></label>
+        <label class="field"><span>Leak Rate (запросов/сек)</span><input type="number" id="lbRate" value="5" min="1"></label>
+      </div>
+      <div id="p-fixed" class="hidden">
+        <label class="field"><span>Window Size (мс)</span><input type="number" id="fwSize" value="2000" min="100"></label>
+        <label class="field"><span>Limit (запросов)</span><input type="number" id="fwLimit" value="10" min="1"></label>
+      </div>
+      <div id="p-sliding" class="hidden">
+        <label class="field"><span>Window Size (мс)</span><input type="number" id="swSize" value="2000" min="100"></label>
+        <label class="field"><span>Sub-windows</span><input type="number" id="swSub" value="4" min="2"></label>
+        <label class="field"><span>Limit (запросов)</span><input type="number" id="swLimit" value="10" min="1"></label>
+      </div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-title">Поток запросов</div>
+      <label class="field"><span>Request Rate (запросов/сек)</span><input type="number" id="reqRate" value="12" min="1" max="200"></label>
+      <label class="field"><span>Burst Size (шт. по кнопке)</span><input type="number" id="burstSize" value="8" min="1" max="100"></label>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btnToggle">▶ Пуск</button>
+      <button class="btn btn-burst" id="btnBurst" disabled>⚡ Всплеск!</button>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="val c-blue"  id="stTotal">0</div><div class="lbl">Всего</div></div>
+      <div class="stat-card"><div class="val c-green" id="stOk">0</div><div class="lbl">Принято</div></div>
+      <div class="stat-card"><div class="val c-red"   id="stReject">0</div><div class="lbl">Отклонено</div></div>
+      <div class="stat-card"><div class="val c-amber" id="stProcessed">0</div><div class="lbl">Обработано</div></div>
+    </div>
+    <div class="legend">
+      <span class="leg-item"><i class="dot" style="background:#58a6ff"></i>Incoming</span>
+      <span class="leg-item"><i class="dot" style="background:#3fb950"></i>Accepted</span>
+      <span class="leg-item"><i class="dot" style="background:#f85149"></i>Rejected</span>
+      <span class="leg-item"><i class="dot" style="background:#d29922"></i>Processed</span>
+    </div>
+    <div id="stateView">Нажмите «Пуск» для начала</div>
+  </div>
+  <div id="main"><canvas id="c"></canvas></div>
+</div>
+
+<script>
+// ── ALL variables declared first, before any function is called ──────────────
+var canvas     = document.getElementById('c');
+var ctx        = canvas.getContext('2d');
+var wrap       = document.getElementById('main');
+var algoSelect = document.getElementById('algoSelect');
+var algoDesc   = document.getElementById('algoDesc');
+var tbCap      = document.getElementById('tbCap');
+var tbRate     = document.getElementById('tbRate');
+var lbCap      = document.getElementById('lbCap');
+var lbRate     = document.getElementById('lbRate');
+var fwSize     = document.getElementById('fwSize');
+var fwLimit    = document.getElementById('fwLimit');
+var swSize     = document.getElementById('swSize');
+var swSub      = document.getElementById('swSub');
+var swLimit    = document.getElementById('swLimit');
+var reqRate    = document.getElementById('reqRate');
+var burstSize  = document.getElementById('burstSize');
+var btnToggle  = document.getElementById('btnToggle');
+var btnBurst   = document.getElementById('btnBurst');
+var stTotal    = document.getElementById('stTotal');
+var stOk       = document.getElementById('stOk');
+var stReject   = document.getElementById('stReject');
+var stProcessed= document.getElementById('stProcessed');
+var stateView  = document.getElementById('stateView');
+
+var gateX = 0, gateY = 0;
+var algo = 'token';
+var tb = null, lb = null, fw = null, sw = null;
+var totalReq = 0, acceptedReq = 0, rejectedReq = 0, processedReq = 0;
+var particles = [];
+var running = false, lastTime = 0, spawnAcc = 0;
+
+// ── canvas resize ────────────────────────────────────────────────────────────
+function resize() {
+  var r = wrap.getBoundingClientRect();
+  canvas.width  = Math.floor(r.width)  || 600;
+  canvas.height = Math.floor(r.height) || 500;
+  gateX = canvas.width  * 0.45;
+  gateY = canvas.height * 0.40;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ── algorithms ───────────────────────────────────────────────────────────────
+function TokenBucket(cap, rate) {
+  this.cap    = Math.max(1, cap | 0);
+  this.rate   = Math.max(0.1, +rate);
+  this.tokens = this.cap;
+  this.last   = 0;
+}
+TokenBucket.prototype.reset = function(now) { this.tokens = this.cap; this.last = now; };
+TokenBucket.prototype.allow = function(now) {
+  var dt = (now - this.last) / 1000; this.last = now;
+  if (dt > 0) this.tokens = Math.min(this.cap, this.tokens + dt * this.rate);
+  if (this.tokens >= 1) { this.tokens -= 1; return true; }
+  return false;
+};
+
+function LeakyBucket(cap, rate) {
+  this.cap    = Math.max(1, cap | 0);
+  this.rate   = Math.max(0.1, +rate);
+  this.volume = 0;
+  this.last   = 0;
+  this.acc    = 0;
+}
+LeakyBucket.prototype.reset = function(now) { this.volume = 0; this.last = now; this.acc = 0; };
+LeakyBucket.prototype.leak = function(now) {
+  var dt = (now - this.last) / 1000; this.last = now;
+  this.acc += dt * this.rate;
+  var out = 0;
+  while (this.volume > 0 && this.acc >= 1) { this.acc -= 1; this.volume -= 1; out++; }
+  return out;
+};
+LeakyBucket.prototype.allow = function() {
+  if (this.volume < this.cap) { this.volume += 1; return true; }
+  return false;
+};
+
+function FixedWindow(ms, lim) {
+  this.size  = Math.max(100, ms | 0);
+  this.limit = Math.max(1, lim | 0);
+  this.start = 0;
+  this.count = 0;
+}
+FixedWindow.prototype.reset = function() { this.start = 0; this.count = 0; };
+FixedWindow.prototype.allow = function(now) {
+  if (now - this.start > this.size) { this.start = now; this.count = 0; }
+  if (this.count < this.limit) { this.count++; return true; }
+  return false;
+};
+
+function SlidingWindow(ms, sub, lim) {
+  this.size    = Math.max(100, ms | 0);
+  this.sub     = Math.max(2, sub | 0);
+  this.limit   = Math.max(1, lim | 0);
+  this.subSize = this.size / this.sub;
+  this.buckets = [];
+  for (var i = 0; i < this.sub; i++) this.buckets.push(0);
+  this.lastIdx = -1;
+}
+SlidingWindow.prototype.reset = function() {
+  for (var i = 0; i < this.buckets.length; i++) this.buckets[i] = 0;
+  this.lastIdx = -1;
+};
+SlidingWindow.prototype.allow = function(now) {
+  var idx = Math.floor(now / this.subSize);
+  if (idx !== this.lastIdx) {
+    var diff = Math.min(idx - this.lastIdx, this.sub);
+    for (var i = 1; i <= diff; i++) this.buckets[(this.lastIdx + i) % this.sub] = 0;
+    this.lastIdx = idx;
+  }
+  var sum = 0;
+  for (var j = 0; j < this.buckets.length; j++) sum += this.buckets[j];
+  if (sum < this.limit) { this.buckets[idx % this.sub]++; return true; }
+  return false;
+};
+
+function createAlgo(now) {
+  if (algo === 'token')   { tb = new TokenBucket(parseInt(tbCap.value)||10, parseFloat(tbRate.value)||5); tb.reset(now); }
+  if (algo === 'leaky')   { lb = new LeakyBucket(parseInt(lbCap.value)||10, parseFloat(lbRate.value)||5); lb.reset(now); }
+  if (algo === 'fixed')   { fw = new FixedWindow(parseInt(fwSize.value)||2000, parseInt(fwLimit.value)||10); fw.reset(); }
+  if (algo === 'sliding') { sw = new SlidingWindow(parseInt(swSize.value)||2000, parseInt(swSub.value)||4, parseInt(swLimit.value)||10); sw.reset(); }
+}
+
+var descs = {
+  token:   'Корзина пополняется со скоростью Refill. Каждый запрос забирает 1 токен. Допускает кратковременные всплески, пока есть запас токенов.',
+  leaky:   'Запросы накапливаются в очереди (bucket). Утечка идёт с постоянной скоростью Leak. Всплески сглаживаются, переполнение → 429.',
+  fixed:   'Счётчик запросов за фиксированный интервал. На стыке двух окон возможен двойной всплеск — классическая проблема Fixed Window.',
+  sliding: 'Окно разбито на sub-windows. Сумма по текущим подокнам точнее фиксированного окна, но требует больше памяти для хранения счётчиков.',
+};
+
+// ── stats ─────────────────────────────────────────────────────────────────────
+function resetStats() {
+  totalReq = 0; acceptedReq = 0; rejectedReq = 0; processedReq = 0;
+  updateStats();
+}
+function updateStats() {
+  stTotal.textContent     = totalReq;
+  stOk.textContent        = acceptedReq;
+  stReject.textContent    = rejectedReq;
+  stProcessed.textContent = processedReq;
+}
+
+// ── algo change ───────────────────────────────────────────────────────────────
+function onAlgoChange() {
+  algo = algoSelect.value;
+  algoDesc.textContent = descs[algo];
+  var keys = ['token','leaky','fixed','sliding'];
+  for (var i = 0; i < keys.length; i++) {
+    document.getElementById('p-' + keys[i]).classList.toggle('hidden', keys[i] !== algo);
+  }
+  resetStats();
+}
+algoSelect.addEventListener('change', onAlgoChange);
+
+var paramInputs = [tbCap, tbRate, lbCap, lbRate, fwSize, fwLimit, swSize, swSub, swLimit];
+for (var pi = 0; pi < paramInputs.length; pi++) {
+  paramInputs[pi].addEventListener('change', function() { createAlgo(performance.now()); });
+}
+
+// ── particles ─────────────────────────────────────────────────────────────────
+function Particle(x, y, type) {
+  this.x = x; this.y = y; this.type = type;
+  this.r = 4.5; this.decided = false; this.life = 1;
+  if (type === 'in')        { this.vx = -(260 + Math.random()*50); this.vy = 0; }
+  else if (type === 'ok')   { this.vx = -200; this.vy = (Math.random()-.5)*50; }
+  else if (type === 'reject'){ this.vx = 130 + Math.random()*70; this.vy = -(110 + Math.random()*80); }
+  else if (type === 'processed'){ this.vx = -150; this.vy = 80 + Math.random()*40; }
+}
+Particle.prototype.update = function(dt) {
+  this.x += this.vx * dt; this.y += this.vy * dt;
+  if (this.type !== 'in') this.life -= dt * 0.38;
+};
+Particle.prototype.color = function() {
+  if (this.type === 'in')        return '#58a6ff';
+  if (this.type === 'ok')        return '#3fb950';
+  if (this.type === 'reject')    return '#f85149';
+  if (this.type === 'processed') return '#d29922';
+  return '#fff';
+};
+
+// ── controls ──────────────────────────────────────────────────────────────────
+btnToggle.addEventListener('click', function() {
+  if (!running) {
+    var now = performance.now();
+    createAlgo(now);
+    resetStats();
+    particles = [];
+    running = true; lastTime = now; spawnAcc = 0;
+    btnToggle.textContent = '■ Стоп';
+    btnToggle.className = 'btn btn-stop';
+    btnBurst.disabled = false;
+  } else {
+    running = false;
+    btnToggle.textContent = '▶ Пуск';
+    btnToggle.className = 'btn btn-primary';
+    btnBurst.disabled = true;
+    stateView.textContent = 'Нажмите «Пуск» для начала';
+  }
+});
+
+btnBurst.addEventListener('click', function() {
+  if (!running) return;
+  var n = parseInt(burstSize.value) || 8;
+  for (var i = 0; i < n; i++)
+    particles.push(new Particle(canvas.width + 10 + i*7, gateY + (Math.random()-.5)*8, 'in'));
+});
+
+// ── draw helpers ──────────────────────────────────────────────────────────────
+function filledBar(x, y, w, h, frac, color) {
+  ctx.fillStyle = '#1c2128'; ctx.fillRect(x, y, w, h);
+  if (frac > 0) { ctx.fillStyle = color; ctx.fillRect(x, y, w * Math.min(1, frac), h); }
+  ctx.strokeStyle = '#30363d'; ctx.lineWidth = 1; ctx.strokeRect(x, y, w, h);
+}
+function canvasLabel(text, x, y, color, size) {
+  ctx.fillStyle = color || '#8b949e';
+  ctx.font = (size || 11) + "px 'JetBrains Mono',monospace";
+  ctx.textAlign = 'center';
+  ctx.fillText(text, x, y);
+}
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
+}
+
+function drawTokenState(x, y) {
+  var w=200, h=22, frac = tb.cap > 0 ? tb.tokens / tb.cap : 0;
+  var col = frac > 0.3 ? '#3fb950' : frac > 0.1 ? '#d29922' : '#f85149';
+  filledBar(x-w/2, y, w, h, frac, col);
+  canvasLabel(tb.tokens.toFixed(1)+' / '+tb.cap+' tokens', x, y+h+14, '#c9d1d9', 11);
+  canvasLabel('+'+tb.rate+'/s refill', x, y+h+27, '#8b949e', 10);
+}
+
+function drawLeakyState(x, y) {
+  var W=50, H=100, frac = lb.cap > 0 ? lb.volume / lb.cap : 0;
+  var col = frac > 0.8 ? '#f85149' : frac > 0.5 ? '#d29922' : '#58a6ff';
+  ctx.fillStyle = '#1c2128'; ctx.fillRect(x-W/2, y, W, H);
+  if (frac > 0) { ctx.fillStyle = col+'44'; ctx.fillRect(x-W/2, y+H*(1-frac), W, H*frac); }
+  ctx.strokeStyle = '#30363d'; ctx.lineWidth = 1; ctx.strokeRect(x-W/2, y, W, H);
+  ctx.fillStyle = '#30363d'; ctx.fillRect(x-5, y+H, 10, 8);
+  canvasLabel(lb.volume+'/'+lb.cap, x, y+H/2+4, '#c9d1d9', 11);
+  canvasLabel('leak '+lb.rate+'/s', x, y+H+22, '#8b949e', 10);
+}
+
+function drawFixedState(x, y, now) {
+  var w=200, h=22, frac = fw.limit > 0 ? fw.count / fw.limit : 0;
+  var col = frac >= 1 ? '#f85149' : '#3fb950';
+  filledBar(x-w/2, y, w, h, frac, col);
+  var elapsed = now - fw.start;
+  var prog = Math.min(1, elapsed / fw.size);
+  ctx.strokeStyle = '#d29922'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(x-w/2+w*prog, y-5); ctx.lineTo(x-w/2+w*prog, y+h+5); ctx.stroke();
+  canvasLabel(fw.count+' / '+fw.limit+'  ('+Math.max(0,fw.size-elapsed).toFixed(0)+' мс)', x, y+h+14, '#c9d1d9', 11);
+}
+
+function drawSlidingState(x, y) {
+  var bW=30, gap=5, maxH=80, n=sw.sub;
+  var totalW = n*(bW+gap)-gap, x0 = x-totalW/2;
+  for (var i=0; i<n; i++) {
+    var h = sw.limit > 0 ? Math.min(maxH, (sw.buckets[i]/sw.limit)*maxH) : 0;
+    ctx.fillStyle = '#1c2128'; ctx.fillRect(x0+i*(bW+gap), y, bW, maxH);
+    if (h > 0) { ctx.fillStyle = '#58a6ff44'; ctx.fillRect(x0+i*(bW+gap), y+maxH-h, bW, h); }
+    ctx.strokeStyle = '#30363d'; ctx.lineWidth = 1; ctx.strokeRect(x0+i*(bW+gap), y, bW, maxH);
+    canvasLabel(''+sw.buckets[i], x0+i*(bW+gap)+bW/2, y+maxH+13, '#8b949e', 10);
+  }
+  var sum=0; for(var j=0;j<sw.buckets.length;j++) sum+=sw.buckets[j];
+  canvasLabel('sum '+sum+' / '+sw.limit, x, y+maxH+26, '#c9d1d9', 11);
+}
+
+// ── state panel ───────────────────────────────────────────────────────────────
+function updateStatePanel(now) {
+  if (!running) return;
+  if (algo === 'token') {
+    stateView.innerHTML = '<b>tokens:</b> '+tb.tokens.toFixed(2)+' / '+tb.cap+'<br><b>refill:</b> '+tb.rate+'/s<br><br><span class="hint">Пока tokens > 0 — всплески проходят</span>';
+  } else if (algo === 'leaky') {
+    stateView.innerHTML = '<b>queue:</b> '+lb.volume+' / '+lb.cap+'<br><b>leak:</b> '+lb.rate+'/s<br><br><span class="hint">Жёлтые частицы — утёкшие запросы</span>';
+  } else if (algo === 'fixed') {
+    var left = Math.max(0, fw.size - (now - fw.start));
+    stateView.innerHTML = '<b>count:</b> '+fw.count+' / '+fw.limit+'<br><b>window:</b> '+fw.size+' мс<br><b>сброс через:</b> '+left.toFixed(0)+' мс<br><br><span class="hint">Всплеск у границы окна → двойной пик</span>';
+  } else {
+    var sum=0; for(var i=0;i<sw.buckets.length;i++) sum+=sw.buckets[i];
+    stateView.innerHTML = '<b>sum:</b> '+sum+' / '+sw.limit+'<br><b>buckets:</b> ['+sw.buckets.join(', ')+']<br><br><span class="hint">Счётчики ротируются по подокнам</span>';
+  }
+}
+
+// ── main loop ─────────────────────────────────────────────────────────────────
+function loop(now) {
+  var dt = Math.min((now - lastTime) / 1000, 0.05);
+  lastTime = now;
+
+  if (running) {
+    var rate = Math.max(1, parseFloat(reqRate.value) || 12);
+    spawnAcc += dt;
+    var interval = 1 / rate;
+    while (spawnAcc >= interval) {
+      spawnAcc -= interval;
+      particles.push(new Particle(canvas.width+15, gateY+(Math.random()-.5)*4, 'in'));
+    }
+    for (var i=0; i<particles.length; i++) {
+      var p = particles[i];
+      if (p.type === 'in' && !p.decided && Math.abs(p.x - gateX) < 8) {
+        p.decided = true; totalReq++;
+        var ok = false;
+        if (algo === 'token')   ok = tb.allow(now);
+        else if (algo === 'leaky')   ok = lb.allow();
+        else if (algo === 'fixed')   ok = fw.allow(now);
+        else if (algo === 'sliding') ok = sw.allow(now);
+        if (ok) {
+          acceptedReq++;
+          if (algo === 'leaky') { p.life = 0; }
+          else { p.type = 'ok'; p.vx = -200; p.vy = (Math.random()-.5)*40; }
+        } else {
+          rejectedReq++;
+          p.type = 'reject'; p.vx = 130+Math.random()*70; p.vy = -(110+Math.random()*80);
+        }
+      }
+    }
+    if (algo === 'leaky') {
+      var out = lb.leak(now);
+      for (var k=0; k<out; k++) {
+        particles.push(new Particle(gateX+(Math.random()-.5)*15, gateY+75+Math.random()*8, 'processed'));
+        processedReq++;
+      }
+    } else {
+      processedReq = acceptedReq;
+    }
+    updateStats();
+  }
+
+  // remove dead particles
+  for (var i=particles.length-1; i>=0; i--) {
+    particles[i].update(dt);
+    var p = particles[i];
+    if (p.life <= 0 || p.x < -60 || p.y < -60 || p.y > canvas.height+60 || p.x > canvas.width+180)
+      particles.splice(i, 1);
+  }
+
+  // draw
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // guide lines
+  ctx.strokeStyle = 'rgba(48,54,61,0.6)'; ctx.lineWidth = 1;
+  ctx.setLineDash([4, 8]);
+  ctx.beginPath(); ctx.moveTo(0, gateY); ctx.lineTo(canvas.width, gateY); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(gateX, gateY-60); ctx.lineTo(gateX, gateY+200); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // direction hints
+  ctx.fillStyle = '#30363d'; ctx.textAlign = 'left'; ctx.font = "11px 'JetBrains Mono',monospace";
+  ctx.fillText('← accepted', gateX-150, gateY-12);
+  ctx.fillText('rejected →', gateX+30, gateY-12);
+
+  // GATE box
+  ctx.fillStyle = '#1c2128';
+  roundRect(gateX-24, gateY-24, 48, 48, 6); ctx.fill();
+  ctx.strokeStyle = '#58a6ff'; ctx.lineWidth = 1.5;
+  roundRect(gateX-24, gateY-24, 48, 48, 6); ctx.stroke();
+  ctx.fillStyle = '#58a6ff'; ctx.textAlign = 'center'; ctx.font = "bold 11px 'JetBrains Mono',monospace";
+  ctx.fillText('GATE', gateX, gateY+4);
+
+  // algo state
+  var sy = gateY + 24 + 14;
+  if (algo === 'token'   && tb) drawTokenState(gateX, sy);
+  if (algo === 'leaky'   && lb) drawLeakyState(gateX, sy);
+  if (algo === 'fixed'   && fw) drawFixedState(gateX, sy, now);
+  if (algo === 'sliding' && sw) drawSlidingState(gateX, sy);
+
+  // particles
+  for (var i=0; i<particles.length; i++) {
+    var p = particles[i];
+    var a = p.type === 'in' ? 1 : Math.max(0, p.life);
+    var col = p.color();
+    ctx.globalAlpha = a;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    ctx.fillStyle = col; ctx.fill();
+    ctx.globalAlpha = a * 0.2;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r+3, 0, Math.PI*2);
+    ctx.fillStyle = col; ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  updateStatePanel(now);
+  requestAnimationFrame(loop);
+}
+
+// ── init ──────────────────────────────────────────────────────────────────────
+onAlgoChange();
+requestAnimationFrame(function(t) { lastTime = t; requestAnimationFrame(loop); });
+</script>
+</body>
+</html>
