@@ -1,0 +1,79 @@
+# ============================================================
+# Consul Demo: Service Discovery + Health Check + DNS
+# ============================================================
+# Топология:
+#   consul      — Consul server (UI на :8500)
+#   web-app     — Go HTTP сервис, регистрируется в Consul
+#   api-app     — Go HTTP сервис, находит web-app через Consul DNS
+# ============================================================
+
+services:
+
+  # ----------------------------------------------------------
+  # Consul Server — сердце service discovery
+  # ----------------------------------------------------------
+  consul:
+    image: hashicorp/consul:1.18
+    command: >
+      agent -server -bootstrap-expect=1
+      -node=consul-server
+      -bind=0.0.0.0
+      -client=0.0.0.0
+      -ui
+    ports:
+      - "8500:8500"   # HTTP API + UI
+      - "8600:8600/udp" # DNS interface
+    healthcheck:
+      test: ["CMD", "consul", "members"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - mesh
+
+  # ----------------------------------------------------------
+  # web-app — сервис, который регистрируется в Consul
+  # Health check: GET /health каждые 10 секунд
+  # ----------------------------------------------------------
+  web-app:
+    build:
+      context: ./web-app
+    environment:
+      - SERVICE_NAME=web
+      - SERVICE_PORT=8080
+      - CONSUL_HTTP_ADDR=consul:8500
+    depends_on:
+      consul:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    networks:
+      - mesh
+
+  # ----------------------------------------------------------
+  # api-app — сервис, который ищет web-app через Consul DNS
+  # Демонстрирует Service Query: web.service.dc1.consul
+  # ----------------------------------------------------------
+  api-app:
+    build:
+      context: ./api-app
+    environment:
+      - SERVICE_NAME=api
+      - SERVICE_PORT=8081
+      - CONSUL_HTTP_ADDR=consul:8500
+      # Consul DNS: сервис ищется как web.service.consul
+      - WEB_SERVICE_DNS=web.service.consul
+    depends_on:
+      consul:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+    networks:
+      - mesh
+    # Используем Consul DNS для резолвинга сервисов
+    #dns:
+    #  - consul  # consul контейнер как DNS сервер
+
+networks:
+  mesh:
+    driver: bridge
