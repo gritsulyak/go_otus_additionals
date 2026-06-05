@@ -1,0 +1,53 @@
+minikube start
+
+... got errors
+
+minikube delete
+
+# 1.
+minikube start
+
+
+# 2. Проверяем, что kubectl настроен автоматически
+kubectl config current-context
+# Ожидаемый вывод: minikube
+
+# 3. Смотрим состав кластера (слайд 10-11: Master + Node)
+kubectl get nodes -o wide
+# Ожидаемо: 1 нода minikube в статусе Ready
+
+# 4. Смотрим системные поды = архитектурные компоненты (слайд 12-14, 18-21)
+kubectl get pods -n kube-system
+# Тут видим:
+#   etcd-minikube              — stateful-хранилище (слайд 12)
+#   kube-apiserver-minikube    — центральный API (слайд 13)
+#   kube-controller-manager    — контроллеры (слайд 14)
+#   kube-scheduler-minikube    — планировщик (слайд 15)
+#   kube-proxy-xxx             — сетевой прокси (слайд 21)
+#   kube-dns/coredns           — DNS внутри кластера
+
+# 5. Проверяем статус компонентов Control Plane
+kubectl get componentstatuses
+# (или современный аналог: kubectl get --raw='/readyz')
+
+# 6. Создаём рабочий namespace (слайд 9: kubectl create)
+kubectl create namespace otus-demo
+kubectl config set-context --current --namespace=otus-demo
+
+
+# 7. Декларативное применение (слайд 9: kubectl apply)
+kubectl apply -f nginx-deployment.yaml
+
+# 8. Смотрим объект Deployment (слайд 27-30)
+kubectl get deployment nginx-demo -o wide
+# Обращаем внимание на колонки: READY, UP-TO-DATE, AVAILABLE
+
+# 9. Смотрим цепочку: Deployment → ReplicaSet → Pod (слайд 28)
+kubectl get rs -l app=nginx
+# Видим ReplicaSet с именем nginx-demo-<hash>
+
+kubectl get pods -l app=nginx -o wide
+# Видим 3 пода, распределённые планировщиком (слайд 15) по единственной ноде
+# Обращаем внимание на IP-адреса каждого Pod (слайд 23: у каждого Pod свой IP)
+
+
