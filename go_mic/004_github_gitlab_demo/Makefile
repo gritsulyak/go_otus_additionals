@@ -16,10 +16,10 @@ test:
 	cd services/api && go test -v -race ./...
 
 build:
-	docker compose build
+	docker compose build --no-cache
 
 up:
-	docker compose up --build -d
+	docker compose up -d --build
 
 down:
 	docker compose down -v
@@ -32,5 +32,5 @@ security:
 run: fmt lint test security up
 
 tag-module:
-	@echo "git tag libs/logger/v0.1.0 && git push origin libs/logger/v0.1.0"
+	@echo "git tag libs/logger/v0.2.0 && git push origin libs/logger/v0.2.0"
 
