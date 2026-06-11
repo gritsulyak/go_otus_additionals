@@ -10,13 +10,17 @@ on:
     paths:
       - "go_mic/004_github_gitlab_demo/**"
 
+env:
+  WORKDIR: go_mic/004_github_gitlab_demo
+
 jobs:
   check:
     name: Lint & Test
     runs-on: ubuntu-latest
+
     defaults:
       run:
-        working-directory: go_mic/004_github_gitlab_demo  # ← все run-команды относительно этой папки
+        working-directory: go_mic/004_github_gitlab_demo   # ← все run-шаги из этой папки
 
     steps:
       - uses: actions/checkout@v4
@@ -25,11 +29,14 @@ jobs:
         with:
           go-version-file: go_mic/004_github_gitlab_demo/libs/logger/go.mod
           cache: true
+          cache-dependency-path: |
+            go_mic/004_github_gitlab_demo/libs/logger/go.sum
+            go_mic/004_github_gitlab_demo/services/api/go.sum
 
       - name: Tidy
         run: |
           cd libs/logger && go mod tidy
-          cd services/api && go mod tidy
+          cd ../services/api && go mod tidy
 
       - name: Format check
         run: test -z "$(gofmt -l libs/logger services/api)"
@@ -49,5 +56,4 @@ jobs:
       - name: Test
         run: |
           cd libs/logger && go test -v -race ./...
-          cd services/api && go test -v -race ./...
-
+          cd ../services/api && go test -v -race ./...
