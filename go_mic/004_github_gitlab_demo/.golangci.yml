@@ -2,18 +2,21 @@ version: "2"
 
 run:
   timeout: 5m
-  go: '1.26'
+  go: '1.23'
 
 linters:
   enable:
     - errcheck
-    - gosimple
     - govet
     - ineffassign
     - staticcheck
     - unused
+
+  # v2: замена issues.exclude-use-default: false
+  # Ref: https://golangci-lint.run/docs/product/migration-guide/
+  exclusions:
+    presets: []   # отключить все встроенные пресеты исключений
+
+formatters:
+  enable:
     - gofmt
-
-issues:
-  exclude-use-default: false
-
