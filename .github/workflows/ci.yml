@@ -39,7 +39,7 @@ jobs:
         run: test -z "$(gofmt -l libs/logger services/api)"
 
       - name: Lint libs/logger
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
           version: v2.12.2
           working-directory: go_mic/004_github_gitlab_demo/libs/logger
