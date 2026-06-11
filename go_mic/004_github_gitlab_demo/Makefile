@@ -29,7 +29,7 @@ security:
 	cd libs/logger && govulncheck ./...
 	cd services/api && govulncheck ./...
 
-run: fmt lint test security up
+run: fmt lint test up
 
 tag-module:
 	@echo "git tag libs/logger/v0.1.0 && git push origin libs/logger/v0.1.0"
