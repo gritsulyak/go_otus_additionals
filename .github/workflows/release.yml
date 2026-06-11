@@ -1,0 +1,50 @@
+name: Release — 004_github_gitlab_demo
+
+on:
+  push:
+    tags:
+      - "go_mic/004_github_gitlab_demo/v*"   # триггер: git tag go_mic/004_github_gitlab_demo/v1.0.0
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go_mic/004_github_gitlab_demo/libs/logger/go.mod
+          cache: true
+          cache-dependency-path: |
+            go_mic/004_github_gitlab_demo/libs/logger/go.sum
+            go_mic/004_github_gitlab_demo/services/api/go.sum
+
+      - name: Tidy & Test
+        working-directory: go_mic/004_github_gitlab_demo
+        run: |
+          cd libs/logger && go mod tidy && go test ./...
+          cd ../services/api && go mod tidy && go test ./...
+
+      - name: Build binary
+        working-directory: go_mic/004_github_gitlab_demo
+        run: |
+          CGO_ENABLED=0 GOOS=linux go build \
+            -ldflags="-s -w" \
+            -trimpath \
+            -o ./dist/api \
+            ./services/api/cmd
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --repo="${{ github.repository }}" \
+            --title="${{ github.ref_name }}" \
+            --generate-notes \
+            go_mic/004_github_gitlab_demo/dist/api
