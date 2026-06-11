@@ -24,7 +24,12 @@ up:
 down:
 	docker compose down -v
 
-run: fmt lint test up
+security:
+	go install golang.org/x/vuln/cmd/govulncheck@latest
+	cd libs/logger && govulncheck ./...
+	cd services/api && govulncheck ./...
+
+run: fmt lint test security up
 
 tag-module:
 	@echo "git tag libs/logger/v0.1.0 && git push origin libs/logger/v0.1.0"
