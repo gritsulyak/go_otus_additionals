@@ -7,4 +7,4 @@ require (
 	github.com/lib/pq v1.10.9
 )
 
-replace github.com/gritsulyak/go_otus_additionals/libs/logger => ../../libs/logger
+replace github.com/gritsulyak/go_otus_additionals/go_mic/004_github_gitlab_demo/libs/logger => ../../libs/logger

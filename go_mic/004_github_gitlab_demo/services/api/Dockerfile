@@ -1,12 +1,13 @@
 FROM golang:1.25-alpine AS builder
 WORKDIR /app
 
-# Копируем go.mod файлы
+# Сначала go.mod для кэширования зависимостей
 COPY libs/logger/go.mod ./libs/logger/go.mod
 COPY services/api/go.mod services/api/go.mod
 COPY services/api/go.sum services/api/go.sum
 
-# Копируем исходник logger ДО go mod download — он нужен для replace
+ARG CACHE_BUST=1
+# Исходники logger — любое изменение инвалидирует кэш начиная отсюда
 COPY libs/logger/ ./libs/logger/
 
 WORKDIR /app/services/api
