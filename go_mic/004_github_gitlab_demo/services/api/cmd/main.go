@@ -75,6 +75,7 @@ func userByIDHandler(db *sql.DB) http.HandlerFunc {
 }
 
 func listUsers(w http.ResponseWriter, _ *http.Request, db *sql.DB) {
+	logger.Debug("listing users")
 	rows, err := db.Query(`SELECT id, name FROM users ORDER BY id`)
 	if err != nil {
 		http.Error(w, "db error", http.StatusInternalServerError)

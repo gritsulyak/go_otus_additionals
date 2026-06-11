@@ -1,4 +1,2 @@
-github.com/gritsulyak/go_otus_additionals/go_mic/004_github_gitlab_demo/libs/logger v0.0.0-20260611154458-765d2c7d2ae9 h1:Sn3P8NrwfQc7AuJIIc0OeLPpe5dLNsBum3llYDz4htk=
-github.com/gritsulyak/go_otus_additionals/go_mic/004_github_gitlab_demo/libs/logger v0.0.0-20260611154458-765d2c7d2ae9/go.mod h1:9/Xc6xbbIvyQA9RN+q5fsjuwysiDP39oXi7H2gDJSjk=
 github.com/lib/pq v1.10.9 h1:YXG7RB+JIjhP29X+OtkiDnYaXQwpS4JEWq7dtCCRUEw=
 github.com/lib/pq v1.10.9/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=

@@ -9,3 +9,7 @@ func Info(msg string) {
 func Error(msg string) {
 	fmt.Printf("[ERROR] %s\n", msg)
 }
+
+func Debug(msg string) {
+	fmt.Printf("[DEBUG] %s\n", msg)
+}
