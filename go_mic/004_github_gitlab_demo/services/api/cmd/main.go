@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gritsulyak/go_otus_additionals/libs/logger"
+	"github.com/gritsulyak/go_otus_additionals/go_mic/004_github_gitlab_demo/libs/logger"
 	_ "github.com/lib/pq"
 )
 
@@ -59,7 +59,8 @@ func userByIDHandler(db *sql.DB) http.HandlerFunc {
 		idStr := strings.TrimPrefix(r.URL.Path, "/users/")
 		id, err := strconv.Atoi(idStr)
 		if err != nil || id <= 0 {
-			http.Error(w, "invalid id", http.StatusBadRequest)
+
+			http.Error(w, "invalid id for /users/{id}", http.StatusBadRequest)
 			return
 		}
 		switch r.Method {
@@ -167,6 +168,7 @@ func main() {
 
 	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
 	if err != nil {
+		logger.Error(err.Error())
 		log.Fatal(err)
 	}
 	defer func() {
