@@ -41,17 +41,17 @@ jobs:
       - name: Lint libs/logger
         uses: golangci/golangci-lint-action@v6
         with:
-          version: 2.12.2
+          version: v2.12.2
           working-directory: go_mic/004_github_gitlab_demo/libs/logger
           args: --config=../../.golangci.yml ./...
 
       - name: Lint services/api
         uses: golangci/golangci-lint-action@v6
         with:
-          version: 2.12.2
+          version: v2.12.2
           working-directory: go_mic/004_github_gitlab_demo/libs/logger
           args: --config=../../.golangci.yml ./...
-          
+
       - name: Test libs/logger
         working-directory: go_mic/004_github_gitlab_demo/libs/logger
         run: go test -v -race ./...
