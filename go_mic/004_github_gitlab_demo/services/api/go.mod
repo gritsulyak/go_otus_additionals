@@ -1,6 +1,6 @@
 module github.com/gritsulyak/go_otus_additionals/services/api
 
-go 1.25.5
+go 1.23
 
 require (
 	github.com/gritsulyak/go_otus_additionals/libs/logger v0.1.0
