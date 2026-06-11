@@ -10,17 +10,10 @@ on:
     paths:
       - "go_mic/004_github_gitlab_demo/**"
 
-env:
-  WORKDIR: go_mic/004_github_gitlab_demo
-
 jobs:
   check:
     name: Lint & Test
     runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: go_mic/004_github_gitlab_demo   # ← все run-шаги из этой папки
 
     steps:
       - uses: actions/checkout@v4
@@ -33,12 +26,16 @@ jobs:
             go_mic/004_github_gitlab_demo/libs/logger/go.sum
             go_mic/004_github_gitlab_demo/services/api/go.sum
 
-      - name: Tidy
-        run: |
-          cd libs/logger && go mod tidy
-          cd ../services/api && go mod tidy
+      - name: Tidy libs/logger
+        working-directory: go_mic/004_github_gitlab_demo/libs/logger
+        run: go mod tidy
+
+      - name: Tidy services/api
+        working-directory: go_mic/004_github_gitlab_demo/services/api
+        run: go mod tidy
 
       - name: Format check
+        working-directory: go_mic/004_github_gitlab_demo
         run: test -z "$(gofmt -l libs/logger services/api)"
 
       - name: Lint libs/logger
@@ -53,7 +50,10 @@ jobs:
           version: latest
           working-directory: go_mic/004_github_gitlab_demo/services/api
 
-      - name: Test
-        run: |
-          cd libs/logger && go test -v -race ./...
-          cd ../services/api && go test -v -race ./...
+      - name: Test libs/logger
+        working-directory: go_mic/004_github_gitlab_demo/libs/logger
+        run: go test -v -race ./...
+
+      - name: Test services/api
+        working-directory: go_mic/004_github_gitlab_demo/services/api
+        run: go test -v -race ./...
