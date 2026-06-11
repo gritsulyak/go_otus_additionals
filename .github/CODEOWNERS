@@ -1,0 +1,7 @@
+# Все файлы — ревью от тебя
+*   @gritsulyak
+
+# Критичные пути — обязательный ревьюер
+.github/workflows/   @gritsulyak
+services/api/        @gritsulyak
+

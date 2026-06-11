@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "go_mic/004_github_gitlab_demo/**"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "go_mic/004_github_gitlab_demo/**"
+
+jobs:
+  check:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: go_mic/004_github_gitlab_demo  # ← все run-команды относительно этой папки
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go_mic/004_github_gitlab_demo/libs/logger/go.mod
+          cache: true
+
+      - name: Tidy
+        run: |
+          cd libs/logger && go mod tidy
+          cd services/api && go mod tidy
+
+      - name: Format check
+        run: test -z "$(gofmt -l libs/logger services/api)"
+
+      - name: Lint libs/logger
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: go_mic/004_github_gitlab_demo/libs/logger
+
+      - name: Lint services/api
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: go_mic/004_github_gitlab_demo/services/api
+
+      - name: Test
+        run: |
+          cd libs/logger && go test -v -race ./...
+          cd services/api && go test -v -race ./...
+
