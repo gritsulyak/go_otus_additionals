@@ -47,7 +47,7 @@ func usersHandler(db *sql.DB) http.HandlerFunc {
 		case http.MethodPost:
 			createUser(w, r, db)
 		default:
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			http.Error(w, "not (Get or Post) method not allowed", http.StatusMethodNotAllowed)
 		}
 	}
 }
