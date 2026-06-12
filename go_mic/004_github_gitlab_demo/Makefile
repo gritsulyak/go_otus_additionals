@@ -1,4 +1,4 @@
-.PHONY: lint fmt test build up down tag-module
+.PHONY: lint fmt test build up down security run tag-module
 
 tidy:
 	cd libs/logger && go mod tidy
@@ -10,13 +10,13 @@ fmt:
 lint: tidy
 	cd libs/logger && golangci-lint run ./...
 	cd services/api && golangci-lint run ./...
-	
+
 test:
 	cd libs/logger && go test -v -race ./...
 	cd services/api && go test -v -race ./...
 
 build:
-	docker compose build --no-cache
+	docker compose build
 
 up:
 	docker compose up -d --build
@@ -24,13 +24,15 @@ up:
 down:
 	docker compose down -v
 
+# govulncheck нужно установить один раз: go install golang.org/x/vuln/cmd/govulncheck@latest
 security:
-	go install golang.org/x/vuln/cmd/govulncheck@latest
 	cd libs/logger && govulncheck ./...
 	cd services/api && govulncheck ./...
 
-run: fmt lint test up
+run: fmt lint security test up
 
+# например: make tag-module TAG=v0.2.1
+TAG ?= v0.2.0
 tag-module:
-	@echo "git tag libs/logger/v0.2.0 && git push origin libs/logger/v0.2.0"
-
+	git tag libs/logger/$(TAG)
+	git push origin libs/logger/$(TAG)

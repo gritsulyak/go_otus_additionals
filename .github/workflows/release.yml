@@ -27,12 +27,13 @@ jobs:
       - name: Tidy & Test
         working-directory: go_mic/004_github_gitlab_demo
         run: |
-          cd libs/logger && go mod tidy && go test ./...
-          cd ../services/api && go mod tidy && go test ./...
+          (cd libs/logger && go mod tidy && go test ./...)
+          (cd services/api && go mod tidy && go test ./...)
 
       - name: Build binary
         working-directory: go_mic/004_github_gitlab_demo
         run: |
+          mkdir -p ./dist  # <-- ДОБАВИТЬ
           CGO_ENABLED=0 GOOS=linux go build \
             -ldflags="-s -w" \
             -trimpath \

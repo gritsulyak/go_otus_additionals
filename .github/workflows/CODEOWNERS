@@ -2,6 +2,5 @@
 *   @gritsulyak
 
 # Критичные пути — обязательный ревьюер
-.github/workflows/   @gritsulyak
-services/api/        @gritsulyak
-
+/.github/workflows/                             @gritsulyak
+/go_mic/004_github_gitlab_demo/services/api/    @gritsulyak
