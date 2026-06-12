@@ -53,11 +53,13 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: go_mic/004_github_gitlab_demo        # ← Docker context = твоя папка
+          context: go_mic/004_github_gitlab_demo
           file: go_mic/004_github_gitlab_demo/services/api/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            CACHE_BUST=${{ github.sha }}
 
