@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: default
+data:
+  # 2. КОНФИГУРАЦИЯ (ConfigMap) + 3. SERVICE DISCOVERY (Динамический параметр)
+  APP_COLOR: "blue"
+  DYNAMIC_MSG: "Welcome to v1.0"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+  namespace: default
+spec:
+  # 1. СТРАТЕГИИ РАЗВЕРТЫВАНИЯ (RollingUpdate)
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1        # При апгрейде создается +1 новый под
+      maxUnavailable: 0  # Ни один старый под не удаляется, пока новый не станет Healthy
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: web-app
+        image: nginx:1.25-alpine # Используем nginx для имитации веб-приложения
+        ports:
+        - containerPort: 80
+        # 2. КОНФИГУРАЦИЯ (Env - Статический проброс)
+        env:
+        - name: STATIC_ENV
+          value: "Production-Cluster"
+        # Монтируем ConfigMap как файлы для динамического отслеживания
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/config
+        # 4. HEALTHCHECKS (Пробы готовности и живучести)
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 2
+          periodSeconds: 5
+      # 3. SERVICE DISCOVERY (Sidecar-контейнер для подписки на изменения)
+      - name: config-reloader
+        image: jimmidyson/configmap-reload:v0.5.0
+        args:
+        - --volume-dir=/etc/config
+        - --webhook-url=http://localhost:80/reload-config-endpoint # Эндпоинт приложения для сброса кэша
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/config
+      volumes:
+      - name: config-volume
+        configMap:
+          name: app-config
+
