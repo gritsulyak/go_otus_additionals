@@ -1,0 +1,7 @@
+# Значения по умолчанию, которые будут подставлены в шаблон
+appOwner: "devops-team"
+environment: "development"
+features:
+  enableLogging: true
+  maxConnections: 100
+
