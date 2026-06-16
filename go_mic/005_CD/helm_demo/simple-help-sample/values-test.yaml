@@ -1,0 +1,12 @@
+# values-test.yaml
+environment: "test"
+appOwner: "qa-automation-team"
+
+features:
+  maxConnections: 50
+  enableLogging: true
+
+
+# helm install my-test-release ./simple-help-sample -f ./values-test.yaml
+# kubectl get configmap my-test-release-config -o yaml
+#
