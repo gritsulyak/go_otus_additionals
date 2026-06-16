@@ -1,0 +1,19 @@
+#  kustomization.yaml
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- deployment.yaml
+
+# Заменяем базовый образ на другой
+images:
+- name: nginx:1.23
+  newTag: 1.25-alpine
+
+    # kubectl kustomize ./
+    # kubectl apply -k ./
+    # kubectl get pods
+    # kubectl describe deployment nginx-deployment | grep Image:
+    # kubectl delete -k ./
+    #

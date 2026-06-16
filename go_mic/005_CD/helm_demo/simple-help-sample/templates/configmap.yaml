@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+  labels:
+    managed-by: {{ .Release.Service | quote }}
+    env: {{ .Values.environment | quote }}
+data:
+  owner: {{ .Values.appOwner | quote }}
+  max_conn: {{ .Values.features.maxConnections | quote }}
+  logging: {{ .Values.features.enableLogging | quote }}
+

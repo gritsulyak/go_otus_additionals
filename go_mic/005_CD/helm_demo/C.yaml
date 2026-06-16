@@ -1,0 +1,13 @@
+---
+# Source: simple-help-sample/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-demo-config
+  labels:
+    managed-by: "Helm"
+    env: "development"
+data:
+  owner: "devops-team"
+  max_conn: "100"
+  logging: "true"
