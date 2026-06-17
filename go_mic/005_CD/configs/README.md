@@ -1,7 +1,7 @@
 # 0. Переменная с именем пода
 POD=$(kubectl get pods -n demo-space -l app=my-app \
   -o jsonpath='{.items[0].metadata.name}')
-
+echo $POD 
 # 1. Поды запущены
 kubectl get pods -n demo-space
 
