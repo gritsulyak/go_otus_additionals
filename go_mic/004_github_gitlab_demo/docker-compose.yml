@@ -14,9 +14,7 @@ services:
       retries: 5
 
   api:
-    build:
-      context: .
-      dockerfile: services/api/Dockerfile
+    image: localhost:5000/docker-local/myapp:1.1.0
     environment:
       DATABASE_URL: postgres://postgres:postgres@db:5432/demo?sslmode=disable
       PORT: "8080"

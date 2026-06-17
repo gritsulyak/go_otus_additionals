@@ -2,17 +2,26 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: app-config
-  namespace: default
+  namespace: demo-space
 data:
   # 2. КОНФИГУРАЦИЯ (ConfigMap) + 3. SERVICE DISCOVERY (Динамический параметр)
   APP_COLOR: "blue"
   DYNAMIC_MSG: "Welcome to v1.0"
+  # Prometheus требует минимальный конфиг для старта
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+    scrape_configs:
+      - job_name: "demo"
+        static_configs:
+          - targets: ["localhost:9090"]
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: my-app
-  namespace: default
+  namespace: demo-space
 spec:
   # 1. СТРАТЕГИИ РАЗВЕРТЫВАНИЯ (RollingUpdate)
   replicas: 3
@@ -31,9 +40,14 @@ spec:
     spec:
       containers:
       - name: web-app
-        image: nginx:1.25-alpine # Используем nginx для имитации веб-приложения
+        # Prometheus — реальный opensource сервис с /-/reload endpoint
+        image: prom/prometheus:v2.51.0
+        args:
+        - --config.file=/etc/config/prometheus.yml
+        - --web.enable-lifecycle          # Включает POST /-/reload endpoint
+        - --storage.tsdb.path=/prometheus
         ports:
-        - containerPort: 80
+        - containerPort: 9090
         # 2. КОНФИГУРАЦИЯ (Env - Статический проброс)
         env:
         - name: STATIC_ENV
@@ -45,27 +59,29 @@ spec:
         # 4. HEALTHCHECKS (Пробы готовности и живучести)
         livenessProbe:
           httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 5
+            path: /-/healthy
+            port: 9090
+          initialDelaySeconds: 10
           periodSeconds: 5
         readinessProbe:
           httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 2
+            path: /-/ready
+            port: 9090
+          initialDelaySeconds: 5
           periodSeconds: 5
-      # 3. SERVICE DISCOVERY (Sidecar-контейнер для подписки на изменения)
+
+      # 3. SERVICE DISCOVERY (Sidecar для подписки на изменения ConfigMap)
       - name: config-reloader
         image: jimmidyson/configmap-reload:v0.5.0
         args:
         - --volume-dir=/etc/config
-        - --webhook-url=http://localhost:80/reload-config-endpoint # Эндпоинт приложения для сброса кэша
+        # Prometheus reload endpoint — именно для этого паттерна и создан configmap-reload
+        - --webhook-url=http://localhost:9090/-/reload
         volumeMounts:
         - name: config-volume
           mountPath: /etc/config
+
       volumes:
       - name: config-volume
         configMap:
           name: app-config
-
